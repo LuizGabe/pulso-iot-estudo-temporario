@@ -1,0 +1,29 @@
+services:
+  api:
+    build: .
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - readings:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+  simulator:
+    build: .
+    command: ["python", "simulator.py", "--interval", "2"]
+    environment:
+      API_URL: http://api:8080/api/sensor/data
+      OUTBOX_PATH: /app/data/outbox.db
+    volumes:
+      - outbox:/app/data
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  readings:
+  outbox:
